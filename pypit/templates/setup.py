@@ -32,7 +32,7 @@ setup(
     license = {license},
     packages = find_packages(),
     include_package_data = True,
-    zip_safe = True,
+    zip_safe = {zip_safe},
     install_requires = {install_requires},
     entry_points = {entry_points},
 )

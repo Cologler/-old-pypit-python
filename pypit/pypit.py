@@ -60,6 +60,7 @@ class PackageMetadata:
         self.license = ''
         self.install_requires = []
         self.entry_points = {}
+        self.zip_safe = False
 
     def repr_dict(self):
         reprm = {}
