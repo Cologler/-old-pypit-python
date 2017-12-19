@@ -22,6 +22,7 @@ class Templates:
         self._install = self._file('install.bat')
         self._upload = self._file('upload.bat')
         self._upload_proxy = self._file('upload_proxy.bat')
+        self._uninstall = self._open_text('uninstall.bat')
 
     def _open_text(self, name):
         with open(os.path.join(self._template_dir, 'templates', name), 'r') as fp:
@@ -45,6 +46,10 @@ class Templates:
     @property
     def install(self):
         return self._install
+
+    @property
+    def uninstall(self):
+        return self._uninstall
 
 TEMPLATES = Templates()
 
@@ -151,8 +156,10 @@ def pypit(projdir: str):
     if not os.path.isdir(projdir):
         raise QuickExit('<{}> is not a dir.'.format(projdir))
 
-    path_metadata = os.path.join(projdir, '__pypit_metadata__.json')
-    path_setup = os.path.join(projdir, 'setup.py')
+    os.chdir(projdir)
+
+    path_metadata = '__pypit_metadata__.json'
+    path_setup = 'setup.py'
 
     metadata = PackageMetadata.parse(path_metadata) or PackageMetadata.create(path_metadata)
     metadata.update_install_requires(projdir)
@@ -162,13 +169,17 @@ def pypit(projdir: str):
     with open(path_setup, 'w') as fp:
         fp.write(TEMPLATES.setup.format(**reprm))
 
+    with open('uninstall.bat', 'w') as fp:
+        fp.write(TEMPLATES.uninstall.format(name=metadata.name))
+
     if not os.path.isfile(TEMPLATES.install.path.name):
         TEMPLATES.install.copy_to(TEMPLATES.install.path.name)
         TEMPLATES.upload.copy_to(TEMPLATES.upload.path.name)
         TEMPLATES.upload_proxy.copy_to(TEMPLATES.upload_proxy.path.name)
 
-    os.chdir(projdir)
-    os.system(TEMPLATES.upload_proxy.path.name)
+    if input('[USER] upload now? [y/n]') == 'y':
+        print('[INFO] begin upload ...')
+        os.system(TEMPLATES.upload_proxy.path.name)
 
     print('[DONE] all job finished.')
 
