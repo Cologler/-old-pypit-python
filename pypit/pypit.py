@@ -67,6 +67,8 @@ class PackageMetadata:
         self.install_requires = []
         self.entry_points = {}
         self.zip_safe = False
+        self.include_package_data = True
+        self.classifiers = []
 
     def repr_dict(self):
         reprm = {}
@@ -150,6 +152,13 @@ class PackageMetadata:
         with open(path, 'w') as fp:
             json.dump(self.__dict__, fp, indent=2)
 
+    def to_setup_argument(self):
+        lines = []
+        for k in self.__dict__:
+            v = repr(self.__dict__[k])
+            lines.append('    {} = {},'.format(k, v))
+        return '\n'.join(lines)
+
 
 def get_rst_doc():
     if os.path.isfile('README.rst'):
@@ -179,9 +188,12 @@ def pypit(projdir: str):
     metadata.update_install_requires()
     metadata.save(path_metadata)
 
-    reprm = metadata.repr_dict()
+    setup_argument = metadata.to_setup_argument()
     with open('setup.py', 'w') as fp:
-        fp.write(TEMPLATES.setup.format(**reprm))
+        fp.write(TEMPLATES.setup.format(
+            setup_argument=setup_argument,
+            description=repr(metadata.description)
+        ))
 
     rstdoc = get_rst_doc()
     with open('__pypit_desc__.rst', 'w') as fp:

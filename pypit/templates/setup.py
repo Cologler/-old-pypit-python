@@ -9,30 +9,17 @@
 import os
 from setuptools import setup, find_packages
 
-DESCRIPTION = {description}
-
-long_description = None
+long_description = ''
 
 if os.path.isfile('__pypit_desc__.rst'):
     with open('__pypit_desc__.rst') as fp:
         long_description = fp.read()
 
-long_description = long_description or DESCRIPTION
+long_description = long_description or ''
 
 setup(
-    name = {name},
-    version = {version},
-    description = DESCRIPTION,
-    long_description = long_description or DESCRIPTION,
-    classifiers = [],
-    keywords = {keywords},
-    author = {author},
-    author_email = {author_email},
-    url = {url},
-    license = {license},
+    long_description = long_description,
     packages = find_packages(),
-    include_package_data = True,
-    zip_safe = {zip_safe},
-    install_requires = {install_requires},
-    entry_points = {entry_points},
+    # auto generated:
+{setup_argument}
 )
