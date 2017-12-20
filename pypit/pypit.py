@@ -10,6 +10,7 @@ import os
 import sys
 import traceback
 import json
+from m2r import convert as md2rst
 from fsoopify import Path, FileInfo
 from setuptools import find_packages
 
@@ -73,8 +74,7 @@ class PackageMetadata:
             reprm[k] = repr(self.__dict__[k])
         return reprm
 
-    def update_install_requires(self, projdir: str):
-        path = os.path.join(projdir, )
+    def update_install_requires(self):
         def detect_and_update(path):
             if os.path.isfile(path):
                 with open(path, 'r') as fp:
@@ -151,6 +151,21 @@ class PackageMetadata:
             json.dump(self.__dict__, fp, indent=2)
 
 
+def get_rst_doc():
+    if os.path.isfile('README.rst'):
+        print('[INFO] resolve description from README.rst.')
+        with open('README.rst') as fp:
+            return fp.read()
+
+    if os.path.isfile('README.md'):
+        print('[INFO] resolve description from README.md.')
+        with open('README.md') as fp:
+            return md2rst(fp.read())
+
+    print('[INFO] no description found.')
+    return ''
+
+
 def pypit(projdir: str):
     projdir = os.path.abspath(projdir)
     if not os.path.isdir(projdir):
@@ -159,15 +174,18 @@ def pypit(projdir: str):
     os.chdir(projdir)
 
     path_metadata = '__pypit_metadata__.json'
-    path_setup = 'setup.py'
 
     metadata = PackageMetadata.parse(path_metadata) or PackageMetadata.create(path_metadata)
-    metadata.update_install_requires(projdir)
+    metadata.update_install_requires()
     metadata.save(path_metadata)
 
     reprm = metadata.repr_dict()
-    with open(path_setup, 'w') as fp:
+    with open('setup.py', 'w') as fp:
         fp.write(TEMPLATES.setup.format(**reprm))
+
+    rstdoc = get_rst_doc()
+    with open('__pypit_desc__.rst', 'w') as fp:
+        fp.write(rstdoc)
 
     with open('uninstall.bat', 'w') as fp:
         fp.write(TEMPLATES.uninstall.format(name=metadata.name))

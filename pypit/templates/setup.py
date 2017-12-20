@@ -13,9 +13,9 @@ DESCRIPTION = {description}
 
 long_description = None
 
-if os.path.isfile('README.md'):
-    with open('README.md') as f:
-        long_description = f.read()
+if os.path.isfile('__pypit_desc__.rst'):
+    with open('__pypit_desc__.rst') as fp:
+        long_description = fp.read()
 
 long_description = long_description or DESCRIPTION
 
