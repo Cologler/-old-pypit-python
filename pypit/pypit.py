@@ -13,6 +13,7 @@ import json
 from m2r import convert as md2rst
 from fsoopify import Path, FileInfo
 from setuptools import find_packages
+from input_picker import pick_bool, pick_item, Stop, Help
 
 class QuickExit(Exception): pass
 
@@ -64,11 +65,14 @@ class PackageMetadata:
         self.author_email = ''
         self.url = ''
         self.license = ''
-        self.install_requires = []
         self.entry_points = {}
         self.zip_safe = False
         self.include_package_data = True
         self.classifiers = []
+        # requires
+        self.setup_requires = []
+        self.install_requires = []
+        self.tests_require = []
 
     def repr_dict(self):
         reprm = {}
@@ -228,7 +232,13 @@ def pypit(projdir: str):
         TEMPLATES.upload.copy_to(TEMPLATES.upload.path.name)
         TEMPLATES.upload_proxy.copy_to(TEMPLATES.upload_proxy.path.name)
 
-    if input('[USER] upload now? [y/n]') == 'y':
+    print('[USER] install now?')
+    if pick_bool():
+        print('[INFO] begin install ...')
+        os.system(TEMPLATES.install.path.name)
+
+    print('[USER] upload now?')
+    if pick_bool():
         print('[INFO] begin upload ...')
         os.system(TEMPLATES.upload_proxy.path.name)
 
@@ -244,6 +254,8 @@ def main(argv=None):
         if len(argv) == 2:
             return pypit(argv[1])
         raise NotImplementedError
+    except Stop:
+        print('User stop application.')
     except QuickExit as qe:
         print(qe)
     except Exception:
@@ -252,5 +264,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     main()
-
-
