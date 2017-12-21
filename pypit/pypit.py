@@ -12,7 +12,7 @@ import traceback
 import json
 import subprocess
 from m2r import convert as md2rst
-from fsoopify import Path, FileInfo
+from fsoopify import Path
 from setuptools import find_packages
 from input_picker import pick_bool, pick_item, Stop, Help
 
@@ -21,60 +21,60 @@ class QuickExit(Exception): pass
 class Templates:
     def __init__(self):
         self._template_dir = Path(sys.argv[0]).dirname
-        self._setup = self._open_text('setup.py')
-        self._build = self._file('build.bat')
-        self._install = self._file('install.bat')
-        self._upload = self._file('upload.bat')
-        self._upload_proxy = self._file('upload_proxy.bat')
         self._uninstall = self._open_text('uninstall.bat')
+        self._setup = self._open_text('setup.py')
+        self._readonlys = {}
+        self._add_readonly('install.bat')
+        self._add_readonly('upload.bat')
+        self._add_readonly('upload_proxy.bat')
+
+    def _add_readonly(self, name):
+        self._readonlys[name] = self._open_text(name)
 
     def _open_text(self, name):
         with open(os.path.join(self._template_dir, 'templates', name), 'r') as fp:
             return fp.read()
 
-    def _file(self, name):
-        return FileInfo(os.path.join(self._template_dir, 'templates', name))
-
     @property
     def setup(self):
         return self._setup
 
-    @property
-    def build(self):
-        return self._build
+    def copy_to(self, metadata):
+        setup_argument = metadata.to_setup_argument()
+        with open('setup.py', 'w') as fp:
+            fp.write(self._setup.format(
+                setup_argument=setup_argument,
+                description=repr(metadata.description)
+            ))
 
-    @property
-    def upload(self):
-        return self._upload
+        with open('uninstall.bat', 'w') as fp:
+            fp.write(self._uninstall.format(name=metadata.name))
 
-    @property
-    def upload_proxy(self):
-        return self._upload_proxy
+        for name in self._readonlys:
+            if os.path.isfile(name):
+                os.remove(name)
+            with open(name, 'w') as fp:
+                fp.write(self._readonlys[name])
 
-    @property
-    def install(self):
-        return self._install
-
-    @property
-    def uninstall(self):
-        return self._uninstall
 
 TEMPLATES = Templates()
 
 class PackageMetadata:
     def __init__(self):
+        # metadata
+        self.name = ''
         self.version = '0.1.0.0'
         self.description = ''
-        self.name = ''
         self.keywords = []
         self.author = ''
         self.author_email = ''
         self.url = ''
         self.license = ''
+        self.classifiers = []
+        # package
         self.entry_points = {}
         self.zip_safe = False
         self.include_package_data = True
-        self.classifiers = []
         # requires
         self.setup_requires = []
         self.install_requires = []
@@ -104,6 +104,19 @@ class PackageMetadata:
         print('[USER] do you want to update other optional arguments ?')
         if not pick_bool():
             return
+        types_map = {
+            'zip_safe': bool,
+            'include_package_data': bool
+        }
+        source = list(types_map.keys())
+        idx = pick_item(source)
+        if idx == -1:
+            return
+        k = source[idx]
+        t = types_map[k]
+        if t is bool:
+            pass
+        return self.update_optional()
 
     @classmethod
     def required_strip(cls, name):
@@ -210,17 +223,13 @@ def get_rst_doc():
 
     return rst_doc
 
-
-def copy_files(metadata: PackageMetadata):
-    with open('uninstall.bat', 'w') as fp:
-        fp.write(TEMPLATES.uninstall.format(name=metadata.name))
-
-    if not os.path.isfile(TEMPLATES.build.path.name):
-        TEMPLATES.build.copy_to(TEMPLATES.build.path.name)
-    if not os.path.isfile(TEMPLATES.install.path.name):
-        TEMPLATES.install.copy_to(TEMPLATES.install.path.name)
-        TEMPLATES.upload.copy_to(TEMPLATES.upload.path.name)
-        TEMPLATES.upload_proxy.copy_to(TEMPLATES.upload_proxy.path.name)
+def build_proj(metadata):
+    subprocess.call(['python', 'setup.py', 'clean'], stdout=subprocess.DEVNULL)
+    subprocess.call(['python', 'setup.py', 'build'], stdout=subprocess.DEVNULL)
+    with open(os.path.join(metadata.name + '.egg-info', 'SOURCES.txt')) as fp:
+        print('[INFO] manifest files:')
+        for line in fp.read().splitlines():
+            print('  ' + line)
 
 def pypit(projdir: str):
     projdir = os.path.abspath(projdir)
@@ -236,34 +245,23 @@ def pypit(projdir: str):
     metadata.update_optional()
     metadata.save(path_metadata)
 
-    setup_argument = metadata.to_setup_argument()
-    with open('setup.py', 'w') as fp:
-        fp.write(TEMPLATES.setup.format(
-            setup_argument=setup_argument,
-            description=repr(metadata.description)
-        ))
+    TEMPLATES.copy_to(metadata)
 
     rstdoc = get_rst_doc()
     with open('__pypit_desc__.rst', 'w') as fp:
         fp.write(rstdoc)
 
-    copy_files(metadata)
-
-    subprocess.call(TEMPLATES.build.path.name, stdout=subprocess.DEVNULL)
-    with open(os.path.join(metadata.name + '.egg-info', 'SOURCES.txt')) as fp:
-        print('[INFO] manifest files:')
-        for line in fp.read().splitlines():
-            print('  ' + line)
+    build_proj(metadata)
 
     print('[USER] install now?')
     if pick_bool(False):
         print('[INFO] begin install ...')
-        os.system(TEMPLATES.install.path.name)
+        os.system('install')
 
     print('[USER] upload now?')
     if pick_bool(False):
         print('[INFO] begin upload ...')
-        os.system(TEMPLATES.upload_proxy.path.name)
+        os.system('upload_proxy')
 
     print('[DONE] all job finished.')
 
