@@ -10,6 +10,7 @@ import os
 import sys
 import traceback
 import json
+import subprocess
 from m2r import convert as md2rst
 from fsoopify import Path, FileInfo
 from setuptools import find_packages
@@ -21,6 +22,7 @@ class Templates:
     def __init__(self):
         self._template_dir = Path(sys.argv[0]).dirname
         self._setup = self._open_text('setup.py')
+        self._build = self._file('build.bat')
         self._install = self._file('install.bat')
         self._upload = self._file('upload.bat')
         self._upload_proxy = self._file('upload_proxy.bat')
@@ -36,6 +38,10 @@ class Templates:
     @property
     def setup(self):
         return self._setup
+
+    @property
+    def build(self):
+        return self._build
 
     @property
     def upload(self):
@@ -93,6 +99,11 @@ class PackageMetadata:
                 print('[INFO] updated install_requires from file <{}>.'.format(name))
                 return
         print('[INFO] does not has any requires modules.')
+
+    def update_optional(self):
+        print('[USER] do you want to update other optional arguments ?')
+        if not pick_bool():
+            return
 
     @classmethod
     def required_strip(cls, name):
@@ -200,6 +211,17 @@ def get_rst_doc():
     return rst_doc
 
 
+def copy_files(metadata: PackageMetadata):
+    with open('uninstall.bat', 'w') as fp:
+        fp.write(TEMPLATES.uninstall.format(name=metadata.name))
+
+    if not os.path.isfile(TEMPLATES.build.path.name):
+        TEMPLATES.build.copy_to(TEMPLATES.build.path.name)
+    if not os.path.isfile(TEMPLATES.install.path.name):
+        TEMPLATES.install.copy_to(TEMPLATES.install.path.name)
+        TEMPLATES.upload.copy_to(TEMPLATES.upload.path.name)
+        TEMPLATES.upload_proxy.copy_to(TEMPLATES.upload_proxy.path.name)
+
 def pypit(projdir: str):
     projdir = os.path.abspath(projdir)
     if not os.path.isdir(projdir):
@@ -211,6 +233,7 @@ def pypit(projdir: str):
 
     metadata = PackageMetadata.parse(path_metadata) or PackageMetadata.create(path_metadata)
     metadata.update_install_requires()
+    metadata.update_optional()
     metadata.save(path_metadata)
 
     setup_argument = metadata.to_setup_argument()
@@ -224,21 +247,21 @@ def pypit(projdir: str):
     with open('__pypit_desc__.rst', 'w') as fp:
         fp.write(rstdoc)
 
-    with open('uninstall.bat', 'w') as fp:
-        fp.write(TEMPLATES.uninstall.format(name=metadata.name))
+    copy_files(metadata)
 
-    if not os.path.isfile(TEMPLATES.install.path.name):
-        TEMPLATES.install.copy_to(TEMPLATES.install.path.name)
-        TEMPLATES.upload.copy_to(TEMPLATES.upload.path.name)
-        TEMPLATES.upload_proxy.copy_to(TEMPLATES.upload_proxy.path.name)
+    subprocess.call(TEMPLATES.build.path.name, stdout=subprocess.DEVNULL)
+    with open(os.path.join(metadata.name + '.egg-info', 'SOURCES.txt')) as fp:
+        print('[INFO] manifest files:')
+        for line in fp.read().splitlines():
+            print('  ' + line)
 
     print('[USER] install now?')
-    if pick_bool():
+    if pick_bool(False):
         print('[INFO] begin install ...')
         os.system(TEMPLATES.install.path.name)
 
     print('[USER] upload now?')
-    if pick_bool():
+    if pick_bool(False):
         print('[INFO] begin upload ...')
         os.system(TEMPLATES.upload_proxy.path.name)
 
