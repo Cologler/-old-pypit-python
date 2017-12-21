@@ -274,7 +274,7 @@ def main(argv=None):
             return pypit('.')
         if len(argv) == 2:
             return pypit(argv[1])
-        raise NotImplementedError
+        print('[ERROR] unknown arguments.')
     except Stop:
         print('User stop application.')
     except QuickExit as qe:
