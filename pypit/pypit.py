@@ -11,12 +11,42 @@ import sys
 import traceback
 import json
 import subprocess
+import logging
 from m2r import convert as md2rst
 from fsoopify import Path
 from setuptools import find_packages
 from input_picker import pick_bool, pick_item, Stop, Help
 
-class QuickExit(Exception): pass
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[{levelname}] {name}: {message}',
+    style='{'
+)
+logger = logging.getLogger('pypit')
+
+class QuickExit(Exception):
+    pass
+
+
+class SetupCli:
+    @staticmethod
+    def clean():
+        return subprocess.call(['python', 'setup.py', 'clean'], stdout=subprocess.DEVNULL)
+
+    @staticmethod
+    def build():
+        return subprocess.call(['python', 'setup.py', 'build'], stdout=subprocess.DEVNULL)
+
+    @staticmethod
+    def install():
+        return subprocess.call(['python', 'setup.py', 'install'], stdout=subprocess.DEVNULL)
+
+    @staticmethod
+    def upload():
+        return subprocess.call(
+            ['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'],
+            stdout=subprocess.DEVNULL)
+
 
 class Templates:
     def __init__(self):
@@ -102,7 +132,7 @@ class PackageMetadata:
 
     def update_optional(self):
         print('[USER] do you want to update other optional arguments ?')
-        if not pick_bool():
+        if not pick_bool(False):
             return
         types_map = {
             'zip_safe': bool,
@@ -114,23 +144,34 @@ class PackageMetadata:
             return
         k = source[idx]
         t = types_map[k]
+        oldval = getattr(self, k)
         if t is bool:
-            pass
+            newval = pick_bool(oldval, use_bool_style=True)
+            setattr(self, k, newval)
+            print('[INFO] {} already set to <{}>.'.format(k, newval))
+        elif t is str:
+            newval = self.input_str(k, True, True)
+            setattr(self, k, newval)
+            print('[INFO] {} already set to <{}>.'.format(k, newval))
+        else:
+            raise NotImplementedError(t)
         return self.update_optional()
 
     @classmethod
-    def required_strip(cls, name):
+    def input_str(cls, name, strip=True, can_empty=False, not_str=None):
+        diff = []
+        if not can_empty:
+            diff.append('')
+        if not_str:
+            diff.append(not_str)
+        opt = ' (cannot be {})'.format(' or '.join([x or 'empty' for x in diff])) if diff else ''
+        msg = '[USER] please input the package {}{}: '.format(name, opt)
         value = ''
-        while not value.strip():
-            value = input('[USER] please input the package {} (cannot be empty): '.format(name))
-        return value.strip()
-
-    @classmethod
-    def required_different_strip(cls, name, oldval):
-        value = ''
-        while not value.strip() or value.strip() == oldval:
-            value = input('[USER] please input the package {} (cannot be empty or `{}`): '.format(name, oldval))
-        return value.strip()
+        while True:
+            value = input(msg)
+            value = value.strip() if strip else value
+            if value not in diff:
+                return value
 
     @classmethod
     def optional_strip(cls, name, defval):
@@ -141,7 +182,10 @@ class PackageMetadata:
 
     @classmethod
     def parse(cls, path):
+        logger = logging.getLogger('pypit')
+
         if not os.path.isfile(path):
+            logger.debug('no exists metadata found.')
             return None
 
         metadata = PackageMetadata()
@@ -154,25 +198,27 @@ class PackageMetadata:
 
         metadata.__dict__.update(content)
 
-        metadata.version = cls.required_different_strip('version', metadata.version)
+        metadata.version = cls.input_str('version', strip=True, can_empty=False, not_str=metadata.version)
 
         return metadata
 
     @classmethod
     def create(cls, path):
+        logger = logging.getLogger('pypit')
+
         metadata = PackageMetadata()
 
         packages = find_packages(where=Path(path).dirname)
         if packages:
             metadata.name = cls.optional_strip('name', packages[0])
         else:
-            metadata.name = cls.required_strip('name')
+            metadata.name = cls.input_str('name')
 
         metadata.version = cls.optional_strip('version', metadata.version)
 
-        metadata.author = cls.required_strip('author')
-        metadata.author_email = cls.required_strip('author email')
-        metadata.url = cls.required_strip('url')
+        metadata.author = cls.input_str('author')
+        metadata.author_email = cls.input_str('author email')
+        metadata.url = cls.input_str('url')
 
         return metadata
 
@@ -192,7 +238,7 @@ def get_rst_doc():
 
     def resolve_desc(name, converter):
         if os.path.isfile(name):
-            print('[INFO] resolve description from {}.'.format(name))
+            logger.info('[INFO] resolve description from {}.'.format(name))
             with open(name) as fp:
                 content = fp.read()
                 return content if converter is None else converter(content)
@@ -200,7 +246,7 @@ def get_rst_doc():
     rst_doc = resolve_desc('README.rst', None) or resolve_desc('README.md', md2rst)
 
     if rst_doc is None:
-        print('[INFO] no description found.')
+        logger.info('[INFO] no description found.')
         return ''
 
     assert isinstance(rst_doc, str)
@@ -209,7 +255,7 @@ def get_rst_doc():
 
     def resolve_history(name, converter):
         if os.path.isfile(name):
-            print('[INFO] append history from {}.'.format(name))
+            logger.info('[INFO] append history from {}.'.format(name))
             with open(name) as fp:
                 content = fp.read()
                 return content if converter is None else converter(content)
@@ -224,8 +270,8 @@ def get_rst_doc():
     return rst_doc
 
 def build_proj(metadata):
-    subprocess.call(['python', 'setup.py', 'clean'], stdout=subprocess.DEVNULL)
-    subprocess.call(['python', 'setup.py', 'build'], stdout=subprocess.DEVNULL)
+    SetupCli.clean()
+    SetupCli.build()
     with open(os.path.join(metadata.name + '.egg-info', 'SOURCES.txt')) as fp:
         print('[INFO] manifest files:')
         for line in fp.read().splitlines():
@@ -255,12 +301,12 @@ def pypit(projdir: str):
 
     print('[USER] install now?')
     if pick_bool(False):
-        print('[INFO] begin install ...')
+        logger.info('begin install ...')
         os.system('install')
 
     print('[USER] upload now?')
     if pick_bool(False):
-        print('[INFO] begin upload ...')
+        logger.info('begin upload ...')
         os.system('upload_proxy')
 
     print('[DONE] all job finished.')
@@ -274,11 +320,11 @@ def main(argv=None):
             return pypit('.')
         if len(argv) == 2:
             return pypit(argv[1])
-        print('[ERROR] unknown arguments.')
+        logger.error('unknown arguments.')
     except Stop:
-        print('User stop application.')
+        logger.info('User stop application.')
     except QuickExit as qe:
-        print(qe)
+        logger.info(str(qe))
     except Exception:
         traceback.print_exc()
         input()
