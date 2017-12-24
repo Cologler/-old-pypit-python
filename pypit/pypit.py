@@ -131,7 +131,7 @@ class PackageMetadata:
         print('[INFO] does not has any requires modules.')
 
     def update_optional(self):
-        print('[USER] do you want to update other optional arguments ?')
+        print('[?] do you want to update other optional arguments ?')
         if not pick_bool(False):
             return
         types_map = {
@@ -165,7 +165,7 @@ class PackageMetadata:
         if not_str:
             diff.append(not_str)
         opt = ' (cannot be {})'.format(' or '.join([x or 'empty' for x in diff])) if diff else ''
-        msg = '[USER] please input the package {}{}: '.format(name, opt)
+        msg = '[?] please input the package {}{}: '.format(name, opt)
         value = ''
         while True:
             value = input(msg)
@@ -175,7 +175,7 @@ class PackageMetadata:
 
     @classmethod
     def optional_strip(cls, name, defval):
-        value = input('[USER] please input the package {} (keep it empty to use `{}`): '.format(name, defval))
+        value = input('[?] please input the package {} (keep it empty to use `{}`): '.format(name, defval))
         if value.strip():
             return value.strip()
         return defval
@@ -299,12 +299,12 @@ def pypit(projdir: str):
 
     build_proj(metadata)
 
-    print('[USER] install now?')
+    print('[?] install now?')
     if pick_bool(False):
         logger.info('begin install ...')
         os.system('install')
 
-    print('[USER] upload now?')
+    print('[?] upload now?')
     if pick_bool(False):
         logger.info('begin upload ...')
         os.system('upload_proxy')
