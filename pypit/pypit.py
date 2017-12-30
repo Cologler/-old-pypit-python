@@ -15,7 +15,7 @@ import logging
 from m2r import convert as md2rst
 from fsoopify import Path
 from setuptools import find_packages
-from input_picker import pick_bool, pick_item, Stop, Help
+from input_picker import pick_bool, pick_item, pick_method, Stop, Help
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -45,14 +45,21 @@ class SetupCli:
     def upload():
         return subprocess.call(
             ['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'],
-            stdout=subprocess.DEVNULL)
+            stdout=subprocess.DEVNULL
+        )
+
+    @staticmethod
+    def upload_use_proxy():
+        return subprocess.call(['upload_proxy.bat'], stdout=subprocess.DEVNULL)
 
 
 class Templates:
     def __init__(self):
         self._template_dir = Path(sys.argv[0]).dirname
-        self._uninstall = self._open_text('uninstall.bat')
         self._setup = self._open_text('setup.py')
+        self._templates = {}
+        self._add_template('install-from-pypi.bat')
+        self._add_template('uninstall.bat')
         self._readonlys = {}
         self._add_readonly('install.bat')
         self._add_readonly('upload.bat')
@@ -60,6 +67,9 @@ class Templates:
 
     def _add_readonly(self, name):
         self._readonlys[name] = self._open_text(name)
+
+    def _add_template(self, name):
+        self._templates[name] = self._open_text(name)
 
     def _open_text(self, name):
         with open(os.path.join(self._template_dir, 'templates', name), 'r') as fp:
@@ -77,12 +87,11 @@ class Templates:
                 description=repr(metadata.description)
             ))
 
-        with open('uninstall.bat', 'w') as fp:
-            fp.write(self._uninstall.format(name=metadata.name))
+        for name in self._templates:
+            with open(name, 'w') as fp:
+                fp.write(self._templates[name].format(name=metadata.name))
 
         for name in self._readonlys:
-            if os.path.isfile(name):
-                os.remove(name)
             with open(name, 'w') as fp:
                 fp.write(self._readonlys[name])
 
@@ -299,17 +308,16 @@ def pypit(projdir: str):
 
     build_proj(metadata)
 
-    print('[?] install now?')
-    if pick_bool(False):
-        logger.info('begin install ...')
-        os.system('install')
+    while True:
+        print('[?] want to execute any action ?')
+        method = pick_method(SetupCli)
+        if method:
+            logger.info('begin {} ...'.format(method.__name__))
+            method()
+        else:
+            print('[DONE] all job finished.')
+            return
 
-    print('[?] upload now?')
-    if pick_bool(False):
-        logger.info('begin upload ...')
-        os.system('upload_proxy')
-
-    print('[DONE] all job finished.')
 
 
 def main(argv=None):
