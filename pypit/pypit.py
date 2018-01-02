@@ -12,6 +12,7 @@ import traceback
 import json
 import subprocess
 import logging
+import colorama
 from m2r import convert as md2rst
 from fsoopify import Path
 from setuptools import find_packages
@@ -24,6 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger('pypit')
 
+colorama.init()
 
 class QuickExit(Exception):
     pass
@@ -32,6 +34,11 @@ class QuickExit(Exception):
 NORM_TABLE = {
     ord('-'): '_'
 }
+
+
+def yellow(text):
+    ''' wrap text as colored text. '''
+    return colorama.Fore.YELLOW + text + colorama.Fore.RESET
 
 
 class SetupCli:
@@ -45,7 +52,12 @@ class SetupCli:
 
     @staticmethod
     def install():
+        SetupCli.uninstall() # uninstall old version
         return subprocess.call(['python', 'setup.py', 'install'], stdout=subprocess.DEVNULL)
+
+    @staticmethod
+    def uninstall():
+        return subprocess.call(['uninstall.bat'], stdout=subprocess.DEVNULL)
 
     @staticmethod
     def upload():
@@ -147,7 +159,7 @@ class PackageMetadata:
 
     def update_optional(self):
         print('[?] do you want to update other optional arguments ?')
-        if not pick_bool(False):
+        if not pick_bool(defval=False):
             return
         types_map = {
             'zip_safe': bool,
@@ -161,7 +173,7 @@ class PackageMetadata:
         t = types_map[k]
         oldval = getattr(self, k)
         if t is bool:
-            newval = pick_bool(oldval, use_bool_style=True)
+            newval = pick_bool(defval=oldval, use_bool_style=True)
             setattr(self, k, newval)
             print('[INFO] {} already set to <{}>.'.format(k, newval))
         elif t is str:
@@ -180,7 +192,7 @@ class PackageMetadata:
         if not_str:
             diff.append(not_str)
         opt = ' (cannot be {})'.format(' or '.join([x or 'empty' for x in diff])) if diff else ''
-        msg = '[?] please input the package {}{}: '.format(name, opt)
+        msg = yellow('[?] please input the package {}{}: '.format(name, opt))
         value = ''
         while True:
             value = input(msg)
@@ -190,7 +202,7 @@ class PackageMetadata:
 
     @classmethod
     def optional_strip(cls, name, defval):
-        value = input('[?] please input the package {} (keep it empty to use `{}`): '.format(name, defval))
+        value = input(yellow('[?] please input the package {} (keep it empty to use `{}`): '.format(name, defval)))
         if value.strip():
             return value.strip()
         return defval
@@ -316,9 +328,9 @@ def pypit(projdir: str):
     build_proj(metadata)
 
     while True:
-        print('[?] want to execute any action ?')
+        print(yellow('[?] want to execute any action ?'))
         method = pick_method(SetupCli)
-        if method:
+        if method is not None:
             logger.info('begin {} ...'.format(method.__name__))
             method()
         else:
