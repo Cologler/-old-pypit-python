@@ -11,6 +11,7 @@ import sys
 import traceback
 import json
 import subprocess
+from subprocess import DEVNULL
 import logging
 import colorama
 from m2r import convert as md2rst
@@ -44,31 +45,31 @@ def yellow(text):
 class SetupCli:
     @staticmethod
     def clean():
-        return subprocess.call(['python', 'setup.py', 'clean'], stdout=subprocess.DEVNULL)
+        subprocess.call(['python', 'setup.py', 'clean'], stdout=DEVNULL)
 
     @staticmethod
     def build():
-        return subprocess.call(['python', 'setup.py', 'build'], stdout=subprocess.DEVNULL)
+        subprocess.call(['python', 'setup.py', 'build'], stdout=DEVNULL)
 
     @staticmethod
     def install():
-        SetupCli.uninstall() # uninstall old version
-        return subprocess.call(['python', 'setup.py', 'install'], stdout=subprocess.DEVNULL)
+        subprocess.call(['uninstall.bat'], stdout=DEVNULL, stderr=DEVNULL)
+        subprocess.call(['python', 'setup.py', 'install'], stdout=DEVNULL)
 
     @staticmethod
     def uninstall():
-        return subprocess.call(['uninstall.bat'], stdout=subprocess.DEVNULL)
+        subprocess.call(['uninstall.bat'], stdout=DEVNULL)
 
     @staticmethod
     def upload():
-        return subprocess.call(
+        subprocess.call(
             ['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'],
-            stdout=subprocess.DEVNULL
+            stdout=DEVNULL
         )
 
     @staticmethod
     def upload_use_proxy():
-        return subprocess.call(['upload_proxy.bat'], stdout=subprocess.DEVNULL)
+        subprocess.call(['upload_proxy.bat'], stdout=DEVNULL)
 
 
 class Templates:
