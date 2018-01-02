@@ -253,7 +253,7 @@ def get_rst_doc():
 
     def resolve_desc(name, converter):
         if os.path.isfile(name):
-            logger.info('[INFO] resolve description from {}.'.format(name))
+            logger.info('resolve description from {}.'.format(name))
             with open(name) as fp:
                 content = fp.read()
                 return content if converter is None else converter(content)
@@ -261,7 +261,7 @@ def get_rst_doc():
     rst_doc = resolve_desc('README.rst', None) or resolve_desc('README.md', md2rst)
 
     if rst_doc is None:
-        logger.info('[INFO] no description found.')
+        logger.info('no description found.')
         return ''
 
     assert isinstance(rst_doc, str)
