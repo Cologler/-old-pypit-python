@@ -155,7 +155,8 @@ class PackageMetadata:
             return
         types_map = {
             'zip_safe': bool,
-            'include_package_data': bool
+            'include_package_data': bool,
+            'license': 'license'
         }
         source = list(types_map.keys())
         idx = pick_item(source)
