@@ -13,20 +13,16 @@ import json
 import subprocess
 from subprocess import DEVNULL
 import logging
-import colorama
 from m2r import convert as md2rst
 from fsoopify import Path
 from setuptools import find_packages
 from input_picker import pick_bool, pick_item, pick_method, Stop, Help
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='[{levelname}] {name}: {message}',
-    style='{'
+from _utils import (
+    logger,
+    yellow
 )
-logger = logging.getLogger('pypit')
-
-colorama.init()
+from input_helper import INPUT_METHOD_TABLE
 
 class QuickExit(Exception):
     pass
@@ -35,11 +31,6 @@ class QuickExit(Exception):
 NORM_TABLE = {
     ord('-'): '_'
 }
-
-
-def yellow(text):
-    ''' wrap text as colored text. '''
-    return colorama.Fore.YELLOW + text + colorama.Fore.RESET
 
 
 class SetupCli:
@@ -154,12 +145,12 @@ class PackageMetadata:
                 return True
         for name in ['requirements.txt', 'requires.txt']:
             if detect_and_update(name):
-                print('[INFO] updated install_requires from file <{}>.'.format(name))
+                logger.info('updated install_requires from file <{}>.'.format(name))
                 return
-        print('[INFO] does not has any requires modules.')
+        logger.info('does not has any requires modules.')
 
     def update_optional(self):
-        print('[?] do you want to update other optional arguments ?')
+        print(yellow('[?] do you want to update other optional arguments ?'))
         if not pick_bool(defval=False):
             return
         types_map = {
@@ -173,16 +164,15 @@ class PackageMetadata:
         k = source[idx]
         t = types_map[k]
         oldval = getattr(self, k)
-        if t is bool:
-            newval = pick_bool(defval=oldval, use_bool_style=True)
-            setattr(self, k, newval)
-            print('[INFO] {} already set to <{}>.'.format(k, newval))
+        func = INPUT_METHOD_TABLE.get(t)
+        if func is not None:
+            newval = func(defval=oldval)
         elif t is str:
             newval = self.input_str(k, True, True)
-            setattr(self, k, newval)
-            print('[INFO] {} already set to <{}>.'.format(k, newval))
         else:
             raise NotImplementedError(t)
+        setattr(self, k, newval)
+        logger.info('{} already set to <{}>.'.format(k, newval))
         return self.update_optional()
 
     @classmethod
@@ -212,8 +202,6 @@ class PackageMetadata:
 
     @classmethod
     def parse(cls, path):
-        logger = logging.getLogger('pypit')
-
         if not os.path.isfile(path):
             logger.debug('no exists metadata found.')
             return None
@@ -234,8 +222,6 @@ class PackageMetadata:
 
     @classmethod
     def create(cls, path):
-        logger = logging.getLogger('pypit')
-
         metadata = PackageMetadata()
 
         packages = find_packages(where=Path(path).dirname)
