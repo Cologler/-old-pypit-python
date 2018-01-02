@@ -156,16 +156,16 @@ class PackageMetadata:
         types_map = {
             'zip_safe': bool,
             'include_package_data': bool,
-            'license': 'license'
+            'license': None
         }
         source = list(types_map.keys())
         idx = pick_item(source)
         if idx == -1:
             return
         name = source[idx]
-        oldval = getattr(self, name)
-        func = INPUT_METHOD_TABLE.get(types_map[name])
+        func = INPUT_METHOD_TABLE.get(name) or INPUT_METHOD_TABLE.get(types_map[name])
         assert func is not None, ''
+        oldval = getattr(self, name)
         newval = func(
             defval=oldval,
             name=name
