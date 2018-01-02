@@ -8,6 +8,8 @@
 
 from input_picker import pick_bool
 
+from _utils import yellow
+
 INPUT_METHOD_TABLE = {}
 def register(t):
     def _(fn):
@@ -16,6 +18,12 @@ def register(t):
     return _
 
 @register(bool)
-def input_bool(oldval):
-    return pick_bool(defval=oldval, use_bool_style=True)
+def input_bool(**kwargs):
+    return pick_bool(defval=kwargs['defval'], use_bool_style=True)
 
+@register(str)
+def input_str(**kwargs):
+    msg = yellow('[?] please input the package {}: '.format(kwargs['name']))
+    print(msg, end='')
+    value = input()
+    return value.strip()

@@ -161,18 +161,16 @@ class PackageMetadata:
         idx = pick_item(source)
         if idx == -1:
             return
-        k = source[idx]
-        t = types_map[k]
-        oldval = getattr(self, k)
-        func = INPUT_METHOD_TABLE.get(t)
-        if func is not None:
-            newval = func(defval=oldval)
-        elif t is str:
-            newval = self.input_str(k, True, True)
-        else:
-            raise NotImplementedError(t)
-        setattr(self, k, newval)
-        logger.info('{} already set to <{}>.'.format(k, newval))
+        name = source[idx]
+        oldval = getattr(self, name)
+        func = INPUT_METHOD_TABLE.get(types_map[name])
+        assert func is not None, ''
+        newval = func(
+            defval=oldval,
+            name=name
+        )
+        setattr(self, name, newval)
+        logger.info('{} already set to <{}>.'.format(name, newval))
         return self.update_optional()
 
     @classmethod
