@@ -24,8 +24,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger('pypit')
 
+
 class QuickExit(Exception):
     pass
+
+
+NORM_TABLE = {
+    ord('-'): '_'
+}
 
 
 class SetupCli:
@@ -281,7 +287,8 @@ def get_rst_doc():
 def build_proj(metadata):
     SetupCli.clean()
     SetupCli.build()
-    with open(os.path.join(metadata.name + '.egg-info', 'SOURCES.txt')) as fp:
+    name = metadata.name.translate(NORM_TABLE)
+    with open(os.path.join(name + '.egg-info', 'SOURCES.txt')) as fp:
         print('[INFO] manifest files:')
         for line in fp.read().splitlines():
             print('  ' + line)
