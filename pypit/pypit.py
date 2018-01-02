@@ -195,14 +195,16 @@ class PackageMetadata:
         msg = yellow('[?] please input the package {}{}: '.format(name, opt))
         value = ''
         while True:
-            value = input(msg)
+            print(msg, end='')
+            value = input()
             value = value.strip() if strip else value
             if value not in diff:
                 return value
 
     @classmethod
     def optional_strip(cls, name, defval):
-        value = input(yellow('[?] please input the package {} (keep it empty to use `{}`): '.format(name, defval)))
+        print(yellow('[?] please input the package {} (keep it empty to use `{}`): '.format(name, defval)), end='')
+        value = input()
         if value.strip():
             return value.strip()
         return defval
@@ -354,7 +356,6 @@ def main(argv=None):
         logger.info(str(qe))
     except Exception:
         traceback.print_exc()
-        input()
 
 if __name__ == '__main__':
     main()
