@@ -66,12 +66,14 @@ class Templates:
                 description=repr(metadata.description)
             ))
 
+        prefix = 'pypitscript_'
+
         for name in self._templates:
-            with open(name, 'w') as fp:
+            with open(prefix + name, 'w') as fp:
                 fp.write(self._templates[name].format(name=metadata.name))
 
         for name in self._readonlys:
-            with open(name, 'w') as fp:
+            with open(prefix + name, 'w') as fp:
                 fp.write(self._readonlys[name])
 
 
