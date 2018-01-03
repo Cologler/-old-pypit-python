@@ -12,11 +12,10 @@ import traceback
 import json
 import subprocess
 from subprocess import DEVNULL
-import logging
 from m2r import convert as md2rst
 from fsoopify import Path
 from setuptools import find_packages
-from input_picker import pick_bool, pick_item, pick_method, Stop, Help
+from input_picker import pick_bool, pick_item, pick_method, Stop
 
 from _utils import (
     logger,
@@ -31,36 +30,6 @@ class QuickExit(Exception):
 NORM_TABLE = {
     ord('-'): '_'
 }
-
-
-class SetupCli:
-    @staticmethod
-    def clean():
-        subprocess.call(['python', 'setup.py', 'clean'], stdout=DEVNULL)
-
-    @staticmethod
-    def build():
-        subprocess.call(['python', 'setup.py', 'build'], stdout=DEVNULL)
-
-    @staticmethod
-    def install():
-        subprocess.call(['uninstall.bat'], stdout=DEVNULL, stderr=DEVNULL)
-        subprocess.call(['python', 'setup.py', 'install'], stdout=DEVNULL)
-
-    @staticmethod
-    def uninstall():
-        subprocess.call(['uninstall.bat'], stdout=DEVNULL)
-
-    @staticmethod
-    def upload():
-        subprocess.call(
-            ['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'],
-            stdout=DEVNULL
-        )
-
-    @staticmethod
-    def upload_use_proxy():
-        subprocess.call(['upload_proxy.bat'], stdout=DEVNULL)
 
 
 class Templates:
@@ -147,7 +116,7 @@ class PackageMetadata:
             if detect_and_update(name):
                 logger.info('updated install_requires from file <{}>.'.format(name))
                 return
-        logger.info('does not has any requires modules.')
+        logger.info('does not found any requires modules.')
 
     def update_optional(self):
         print(yellow('[?] do you want to update other optional arguments ?'))
@@ -223,7 +192,7 @@ class PackageMetadata:
     def create(cls, path):
         metadata = PackageMetadata()
 
-        packages = find_packages(where=Path(path).dirname)
+        packages = find_packages(where=Path(path).dirname or '.')
         if packages:
             metadata.name = cls.optional_strip('name', packages[0])
         else:
@@ -247,6 +216,44 @@ class PackageMetadata:
             v = repr(self.__dict__[k])
             lines.append('    {} = {},'.format(k, v))
         return '\n'.join(lines)
+
+
+class SetupCli:
+    def __init__(self, metadata: PackageMetadata):
+        self._metadata = metadata
+        self._name = metadata.name
+
+    def clean(self):
+        subprocess.call(['python', 'setup.py', 'clean'], stdout=DEVNULL)
+
+    def build(self):
+        subprocess.call(['python', 'setup.py', 'build'], stdout=DEVNULL)
+
+    def install(self):
+        ''' install from project. '''
+        subprocess.call(['uninstall.bat'], stdout=DEVNULL, stderr=DEVNULL)
+        subprocess.call(['python', 'setup.py', 'install'], stdout=DEVNULL)
+
+    def install_update(self):
+        ''' install from project. before install, uninstall exists version. '''
+        subprocess.call(['pip', 'uninstall', self._name], stdout=DEVNULL, stderr=DEVNULL)
+        self.install()
+
+    def install_from_pypi(self):
+        subprocess.call(['pip', 'install', self._name, '--upgrade'], stdout=DEVNULL)
+
+    def uninstall(self):
+        subprocess.call(['pip', 'uninstall', self._name], stdout=DEVNULL)
+
+    def upload(self):
+        ''' upload to pypi. '''
+        subprocess.call(
+            ['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'],
+            stdout=DEVNULL
+        )
+
+    def upload_use_proxy(self):
+        subprocess.call(['upload_proxy.bat'], stdout=DEVNULL)
 
 
 def get_rst_doc():
@@ -284,10 +291,10 @@ def get_rst_doc():
 
     return rst_doc
 
-def build_proj(metadata):
-    SetupCli.clean()
-    SetupCli.build()
-    name = metadata.name.translate(NORM_TABLE)
+def build_proj(setup_cli):
+    setup_cli.clean()
+    setup_cli.build()
+    name = setup_cli._name.translate(NORM_TABLE)
     with open(os.path.join(name + '.egg-info', 'SOURCES.txt')) as fp:
         print('[INFO] manifest files:')
         for line in fp.read().splitlines():
@@ -313,18 +320,18 @@ def pypit(projdir: str):
     with open('__pypit_desc__.rst', 'w') as fp:
         fp.write(rstdoc)
 
-    build_proj(metadata)
+    setup_cli = SetupCli(metadata)
+    build_proj(setup_cli)
 
     while True:
         print(yellow('[?] want to execute any action ?'))
-        method = pick_method(SetupCli)
+        method = pick_method(setup_cli)
         if method is not None:
             logger.info('begin {} ...'.format(method.__name__))
             method()
         else:
             print('[DONE] all job finished.')
             return
-
 
 
 def main(argv=None):
