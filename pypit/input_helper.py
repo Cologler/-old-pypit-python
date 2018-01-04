@@ -6,9 +6,17 @@
 #
 # ----------
 
+import os
+import re
+import glob
+from setuptools import find_packages
 from input_picker import pick_bool, pick_item
+from fsoopify import DirectoryInfo, FileInfo
 
-from _utils import yellow
+from _utils import (
+    yellow, green,
+    logger
+)
 
 INPUT_METHOD_TABLE = {}
 def register(t):
@@ -18,12 +26,12 @@ def register(t):
     return _
 
 @register(bool)
-def input_bool(**kwargs):
-    return pick_bool(defval=kwargs['defval'], use_bool_style=True)
+def input_bool(defval, **kwargs):
+    return pick_bool(defval=defval, use_bool_style=True)
 
 @register(str)
-def input_str(**kwargs):
-    msg = yellow('[?] please input the package {}: '.format(kwargs['name']))
+def input_str(name, **kwargs):
+    msg = yellow('[?] please input the package {}: '.format(name))
     print(msg, end='')
     value = input()
     return value.strip()
@@ -51,3 +59,66 @@ def input_license(**kwargs):
         return ''
     else:
         return ls[index]
+
+
+@register('entry_points')
+def input_entry_points(**kwargs):
+    '''
+    return a dict like `{ 'console_scripts': ['funniest-joke=funniest.command_line:main'], }`.
+    '''
+    filelist = []
+    for packroot in find_packages():
+        root_dir = DirectoryInfo(packroot)
+        for f in [x for x in root_dir.list_items(depth=100) if isinstance(x, FileInfo)]:
+            if not f.path.ext.equals('.py'):
+                continue
+            path = str(f.path)
+            filelist.append(path)
+
+    def find_default_on_files(items):
+        for wkname in ('cli.py', 'main.py',):
+            lwkn = os.pathsep + wkname
+            for i, x in enumerate(items):
+                if x.endswith(lwkn):
+                    return i
+
+    if not filelist:
+        logger.error('no python files was founds.')
+        return
+
+    print(yellow('[?] please select a file that contains entry points:'))
+    idx = pick_item(filelist, defidx=find_default_on_files(filelist))
+    if idx == -1:
+        return
+
+    filepath = filelist[idx]
+    content = FileInfo(filepath).read_alltext()
+    matches = re.findall('^def ([^(]+)\\(.+$', content, flags=re.M) # func names
+
+    def find_default_on_funcs(items):
+        for wkname in ('cli', 'main',):
+            for i, x in enumerate(items):
+                if x == wkname:
+                    return i
+
+    if not matches:
+        logger.error('no python files was founds from {}.'.format(green(filepath)))
+        return
+
+    print(yellow('[?] please select a func from the .py file:'))
+    idx = pick_item(matches, defidx=find_default_on_funcs(matches))
+    if idx == -1:
+        return
+    funcname = matches[idx]
+
+    msg = yellow('[?] please input the entry points name (default is {})'.format(green(funcname)))
+    print(msg, end='')
+    entry_points = input().strip() or funcname
+
+    return {
+        'console_scripts': ['{entry_points}={filepath}:{funcname}'.format(
+            entry_points=entry_points,
+            filepath=filepath.replace(os.pathsep, '.'),
+            funcname=funcname,
+        )]
+    }

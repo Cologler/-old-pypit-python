@@ -127,7 +127,8 @@ class PackageMetadata:
         types_map = {
             'zip_safe': bool,
             'include_package_data': bool,
-            'license': None
+            'license': None,
+            'entry_points': None
         }
         source = list(types_map.keys())
         idx = pick_item(source)
@@ -138,8 +139,9 @@ class PackageMetadata:
         assert func is not None, ''
         oldval = getattr(self, name)
         newval = func(
+            metadata=self,
             defval=oldval,
-            name=name
+            name=name,
         )
         setattr(self, name, newval)
         logger.info('{} already set to <{}>.'.format(name, newval))
