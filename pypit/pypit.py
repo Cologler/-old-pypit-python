@@ -17,7 +17,7 @@ from fsoopify import Path
 from setuptools import find_packages
 from input_picker import pick_bool, pick_item, pick_method, Stop
 
-from _utils import (
+from internal.utils import (
     logger,
     yellow
 )
@@ -129,7 +129,8 @@ class PackageMetadata:
             'zip_safe': bool,
             'include_package_data': bool,
             'license': None,
-            'entry_points': None
+            'entry_points': None,
+            'scripts': None,
         }
         source = list(types_map.keys())
         idx = pick_item(source)

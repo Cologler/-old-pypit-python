@@ -11,10 +11,10 @@ import re
 import glob
 from setuptools import find_packages
 from input_picker import pick_bool, pick_item
-from fsoopify import DirectoryInfo, FileInfo
+from fsoopify import DirectoryInfo, FileInfo, Path
 
-from _utils import (
-    yellow, green,
+from internal.utils import (
+    yellow, lightgreen,
     logger
 )
 
@@ -24,6 +24,11 @@ def register(t):
         INPUT_METHOD_TABLE[t] = fn
         return fn
     return _
+
+def _pick_more(field_name) -> bool:
+    ''' ask whether user want to pick more item. '''
+    print(yellow('[?]') + ' did you want to pick more {}:'.format(lightgreen(field_name)))
+    return pick_bool(defval=False)
 
 @register(bool)
 def input_bool(defval, **kwargs):
@@ -61,20 +66,67 @@ def input_license(**kwargs):
         return ls[index]
 
 
-@register('entry_points')
-def input_entry_points(**kwargs):
+def _list_python_scripts(pack_root):
+    filelist = []
+    root_dir = DirectoryInfo(pack_root)
+    for f in [x for x in root_dir.list_items(depth=100) if isinstance(x, FileInfo)]:
+        if not f.path.ext.equals('.py'):
+            continue
+        path = str(f.path)
+        filelist.append(path)
+    return filelist
+
+
+@register('scripts')
+def input_scripts(defval, **kwargs):
     '''
-    return a dict like `{ 'console_scripts': ['funniest-joke=funniest.command_line:main'], }`.
+    return a list of .py file.
+    each files will be copy to python script directory and make it available for general use.
     '''
     filelist = []
+    for package in [x.path.name for x in DirectoryInfo('.').list_items() if isinstance(x, DirectoryInfo)]:
+        filelist.extend(_list_python_scripts(package))
+
+    if not filelist:
+        logger.error('no python files was founds.')
+        return
+
+    if defval:
+        filelist = [x for x in filelist if x not in defval]
+
+    def pick():
+        print(yellow('[?]'), 'please pick a file that will be copy to python script directory:')
+        idx = pick_item(filelist)
+        if idx == -1:
+            return
+
+        defval.append(filelist.pop(idx))
+        return _pick_more('scripts')
+
+    while pick():
+        pass
+
+    return defval
+
+
+@register('entry_points')
+def input_entry_points(defval: dict, **kwargs):
+    '''
+    return a dict like `{ 'console_scripts': ['funniest-joke=funniest.command_line:main'], }`.
+
+    same as:
+
+    ``` py
+    from funniest.command_line import main
+    main()
+    ```
+    '''
+    console_scripts = defval.setdefault('console_scripts', list)
+
+    filelist = []
     packages_names = find_packages()
-    for packroot in packages_names:
-        root_dir = DirectoryInfo(packroot)
-        for f in [x for x in root_dir.list_items(depth=100) if isinstance(x, FileInfo)]:
-            if not f.path.ext.equals('.py'):
-                continue
-            path = str(f.path)
-            filelist.append(path)
+    for package in packages_names:
+        filelist.extend(_list_python_scripts(package))
 
     def find_default_on_files(items):
         for wkname in ('cli.py', 'main.py',):
@@ -87,39 +139,51 @@ def input_entry_points(**kwargs):
         logger.error('no python files was founds.')
         return
 
-    print(yellow('[?] please select a file that contains entry points:'))
-    idx = pick_item(filelist, defidx=find_default_on_files(filelist))
-    if idx == -1:
-        return
+    def pick():
+        print(yellow('[?]'), 'please pick a file that contains entry points:')
+        idx = pick_item(filelist, defidx=find_default_on_files(filelist))
+        if idx == -1:
+            return
 
-    filepath = filelist[idx]
-    content = FileInfo(filepath).read_alltext()
-    matches = re.findall('^def ([^(]+)\\(.+$', content, flags=re.M) # func names
+        filepath = filelist[idx]
+        content = FileInfo(filepath).read_alltext()
+        matches = re.findall('^def ([^(]+)\\(.+$', content, flags=re.M) # func names
 
-    def find_default_on_funcs(items):
-        for wkname in ('cli', 'main',):
-            for i, x in enumerate(items):
-                if x == wkname:
-                    return i
+        def find_default_on_funcs(items):
+            for wkname in ('cli', 'main',):
+                for i, x in enumerate(items):
+                    if x == wkname:
+                        return i
 
-    if not matches:
-        logger.error('no python files was founds from {}.'.format(green(filepath)))
-        return
+        if not matches:
+            logger.error('no python files was founds from {}.'.format(lightgreen(filepath)))
+            return
 
-    print(yellow('[?] please select a func from the .py file:'))
-    idx = pick_item(matches, defidx=find_default_on_funcs(matches))
-    if idx == -1:
-        return
-    funcname = matches[idx]
+        print(yellow('[?]'), 'please pick a func from {}:'.format(lightgreen(Path(filepath).name)))
+        idx = pick_item(matches, defidx=find_default_on_funcs(matches))
+        if idx == -1:
+            return
+        funcname = matches[idx]
 
-    msg = yellow('[?] please input the entry points name (default is {})'.format(green(packages_names[0])))
-    print(msg, end='')
-    entry_points = input().strip() or packages_names[0]
+        msg = yellow('[?]')
+        msg += 'please input the entry points name (default is {})'.format(
+            lightgreen(packages_names[0])
+        )
+        print(msg, end='')
+        entry_points = input().strip() or packages_names[0]
 
-    return {
-        'console_scripts': ['{entry_points}={filepath}:{funcname}'.format(
+        module_name = filepath[:-3].replace(os.sep, '.') # remove `.py` and more
+
+        script = '{entry_points}={module_name}:{funcname}'.format(
             entry_points=entry_points,
-            filepath=filepath.replace(os.sep, '.'),
+            module_name=module_name,
             funcname=funcname,
-        )]
-    }
+        )
+        if script not in console_scripts:
+            console_scripts.append(script)
+        return _pick_more('entry_points')
+
+    while pick():
+        pass
+
+    return defval
