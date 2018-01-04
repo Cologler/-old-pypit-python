@@ -333,6 +333,7 @@ def pypit(projdir: str):
         if method is not None:
             logger.info('begin {} ...'.format(method.__name__))
             method()
+            logger.info('{} finished ...'.format(method.__name__))
         else:
             print('[DONE] all job finished.')
             return
