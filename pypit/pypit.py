@@ -235,12 +235,11 @@ class SetupCli:
 
     def install(self):
         ''' install from project. '''
-        subprocess.call(['uninstall.bat'], stdout=DEVNULL, stderr=DEVNULL)
         subprocess.call(['python', 'setup.py', 'install'], stdout=DEVNULL)
 
     def install_update(self):
         ''' install from project. before install, uninstall exists version. '''
-        subprocess.call(['pip', 'uninstall', self._name], stdout=DEVNULL, stderr=DEVNULL)
+        subprocess.call(['pip', 'uninstall', self._name], stdout=DEVNULL)
         self.install()
 
     def install_from_pypi(self):
