@@ -256,7 +256,7 @@ class SetupCli:
         )
 
     def upload_use_proxy(self):
-        subprocess.call(['upload_proxy.bat'], stdout=DEVNULL)
+        subprocess.call(['pypitscript_upload_proxy.bat'], stdout=DEVNULL)
 
 
 def get_rst_doc():

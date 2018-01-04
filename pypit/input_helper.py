@@ -67,7 +67,8 @@ def input_entry_points(**kwargs):
     return a dict like `{ 'console_scripts': ['funniest-joke=funniest.command_line:main'], }`.
     '''
     filelist = []
-    for packroot in find_packages():
+    packages_names = find_packages()
+    for packroot in packages_names:
         root_dir = DirectoryInfo(packroot)
         for f in [x for x in root_dir.list_items(depth=100) if isinstance(x, FileInfo)]:
             if not f.path.ext.equals('.py'):
@@ -77,7 +78,7 @@ def input_entry_points(**kwargs):
 
     def find_default_on_files(items):
         for wkname in ('cli.py', 'main.py',):
-            lwkn = os.pathsep + wkname
+            lwkn = os.sep + wkname
             for i, x in enumerate(items):
                 if x.endswith(lwkn):
                     return i
@@ -111,14 +112,14 @@ def input_entry_points(**kwargs):
         return
     funcname = matches[idx]
 
-    msg = yellow('[?] please input the entry points name (default is {})'.format(green(funcname)))
+    msg = yellow('[?] please input the entry points name (default is {})'.format(green(packages_names[0])))
     print(msg, end='')
-    entry_points = input().strip() or funcname
+    entry_points = input().strip() or packages_names[0]
 
     return {
         'console_scripts': ['{entry_points}={filepath}:{funcname}'.format(
             entry_points=entry_points,
-            filepath=filepath.replace(os.pathsep, '.'),
+            filepath=filepath.replace(os.sep, '.'),
             funcname=funcname,
         )]
     }
