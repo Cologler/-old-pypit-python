@@ -92,6 +92,7 @@ class PackageMetadata:
         self.license = ''
         self.classifiers = []
         # package
+        self.scripts = []
         self.entry_points = {}
         self.zip_safe = False
         self.include_package_data = True
@@ -143,8 +144,9 @@ class PackageMetadata:
             defval=oldval,
             name=name,
         )
-        setattr(self, name, newval)
-        logger.info('{} already set to <{}>.'.format(name, newval))
+        if newval is not None:
+            setattr(self, name, newval)
+            logger.info('{} already set to <{}>.'.format(name, newval))
         return self.update_optional()
 
     @classmethod
