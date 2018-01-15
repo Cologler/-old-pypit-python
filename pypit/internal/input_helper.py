@@ -8,12 +8,11 @@
 
 import os
 import re
-import glob
 from setuptools import find_packages
 from input_picker import pick_bool, pick_item
 from fsoopify import DirectoryInfo, FileInfo, Path
 
-from internal.utils import (
+from .utils import (
     yellow, lightgreen,
     logger
 )
