@@ -48,7 +48,7 @@ def pypit(projdir: str):
     metadata.auto_update()
     metadata.update_optional()
     metadata.save(path_metadata)
-    metadata.generate_setup_py()
+    metadata.generate_setup_py('setup.py')
 
     generate_rst_doc()
 

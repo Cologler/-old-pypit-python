@@ -18,6 +18,7 @@ from .input_helper import INPUT_METHOD_TABLE
 from .template import TEMPLATES
 
 class PackageMetadata:
+
     def __init__(self):
         # metadata
         self.name = ''
@@ -45,23 +46,19 @@ class PackageMetadata:
             reprm[k] = repr(self.__dict__[k])
         return reprm
 
+    # auto update
+
+    _AUTO_UPDATERS = []
+
+    @classmethod
+    def register_auto_updater(cls, fn):
+        cls._AUTO_UPDATERS.append(fn)
+        return fn
+
     def auto_update(self):
         ''' auto update from project. '''
-        self._auto_update_install_requires()
-
-    def _auto_update_install_requires(self):
-        def detect_and_update(path):
-            if os.path.isfile(path):
-                with open(path, 'r') as fp:
-                    lines = str(fp.read()).splitlines()
-                    lines = [l for l in lines if l.strip()]
-                    self.install_requires = lines
-                return True
-        for name in ['requirements.txt', 'requires.txt']:
-            if detect_and_update(name):
-                logger.info(f'updated install_requires from file <{name}>.')
-                return
-        logger.info('does not found any requires modules.')
+        for updater in self._AUTO_UPDATERS:
+            updater(self)
 
     def update_optional(self):
         print(yellow('[?]'), 'do you want to update any optional arguments ?')
@@ -169,7 +166,7 @@ class PackageMetadata:
 
     def to_setup_argument(self):
         lines = []
-        for k in self.__dict__:
-            v = repr(self.__dict__[k])
-            lines.append('    {} = {},'.format(k, v))
+        for k, v in self.__dict__.items():
+            if not k.startswith('_'):
+                lines.append('    {} = {},'.format(k, repr(v)))
         return '\n'.join(lines)

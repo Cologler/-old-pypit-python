@@ -16,6 +16,7 @@ from .utils import (
     yellow, lightgreen,
     logger
 )
+from .data_licenses import LICENSES_LIST
 
 INPUT_METHOD_TABLE = {}
 def register(t):
@@ -42,21 +43,8 @@ def input_str(name, **kwargs):
 
 @register('license')
 def input_license(**kwargs):
-    ls = [
-        'Apache License 2.0',
-        'GNU General Public License v3.0',
-        'MIT License',
-        'BSD 2-clause "Simplified" License',
-        'BSD 3-clause "New" or "Revised" License',
-        'Eclipse Public License 1.0',
-        'GNU Affero General Public License v3.0',
-        'GNU General Public License v2.0',
-        'GNU Lesser General Public License v2.1',
-        'GNU Lesser General Public License v3.0',
-        'Mozilla Public License 2.0',
-        'The Unlicense'
-    ]
-    msg = yellow('[?] please pick a license from list:')
+    ls = LICENSES_LIST
+    msg = yellow('[?]') + 'please pick a license from list:'
     print(msg, end='')
     index = pick_item(ls, defidx=2)
     if index == -1:
@@ -145,7 +133,7 @@ def input_entry_points(defval: dict, **kwargs):
             return
 
         filepath = filelist[idx]
-        content = FileInfo(filepath).read_alltext()
+        content = FileInfo(filepath).read_text()
         matches = re.findall('^def ([^(]+)\\(.+$', content, flags=re.M) # func names
 
         def find_default_on_funcs(items):

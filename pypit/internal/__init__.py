@@ -5,3 +5,5 @@
 # ----------
 #
 # ----------
+
+from .auto_update import os
