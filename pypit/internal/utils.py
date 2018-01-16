@@ -32,3 +32,11 @@ def yellow(text):
 def lightgreen(text):
     ''' wrap text as colored text. '''
     return colorama.Fore.LIGHTGREEN_EX + text + colorama.Fore.RESET
+
+def green(text):
+    ''' wrap text as colored text. '''
+    return colorama.Fore.GREEN + text + colorama.Fore.RESET
+
+def red(text):
+    ''' wrap text as colored text. '''
+    return colorama.Fore.RED + text + colorama.Fore.RESET

@@ -17,7 +17,7 @@ from internal.utils import (
     yellow
 )
 from internal.package_metadata import PackageMetadata
-from internal.setupcli import SetupCli, InitSetupCli
+from internal.setupcli import SetupCli
 from internal.doc import generate_rst_doc
 
 
@@ -27,8 +27,8 @@ NORM_TABLE = {
 
 
 def build_proj(setup_cli):
-    setup_cli.clean()
-    setup_cli.build()
+    setup_cli.clean(quiet=True)
+    setup_cli.build(quiet=True)
     name = setup_cli._name.translate(NORM_TABLE)
     with open(os.path.join(name + '.egg-info', 'SOURCES.txt')) as fp:
         print('[INFO] manifest files:')
@@ -52,7 +52,7 @@ def pypit(projdir: str):
 
     generate_rst_doc()
 
-    setup_cli = InitSetupCli(metadata)
+    setup_cli = SetupCli(metadata)
     build_proj(setup_cli)
 
     while True:
@@ -65,8 +65,6 @@ def pypit(projdir: str):
         else:
             print('[DONE] all job finished.')
             return
-        if isinstance(setup_cli, InitSetupCli):
-            setup_cli.__class__ = SetupCli
 
 
 def main(argv=None):

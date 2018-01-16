@@ -6,52 +6,87 @@
 #
 # ----------
 
+import os
 import subprocess
-from subprocess import DEVNULL
+from subprocess import PIPE
 
 from .package_metadata import PackageMetadata
 from .template import TEMPLATES
+from .utils import logger, green, red
 
 class SetupCli:
     def __init__(self, metadata: PackageMetadata):
         self._metadata = metadata
         self._name = metadata.name
 
-    def clean(self):
-        subprocess.call(['python', 'setup.py', 'clean'], stdout=DEVNULL)
+    def _handle_result(self, spr, *, quiet=False):
+        prefix = '>>>'.rjust(13).ljust(14)
 
-    def build(self):
-        subprocess.call(['python', 'setup.py', 'build'], stdout=DEVNULL)
+        if spr.stderr:
+            text = spr.stderr.decode('utf-8')
+            docs = [
+                'output: ',
+                *[prefix + red(line) for line in text.splitlines()]
+            ]
+            logger.error('\n'.join(docs))
+
+        elif not quiet and spr.stdout:
+            text = spr.stdout.decode('utf-8')
+            docs = [
+                'output: ',
+                *[prefix + green(line) for line in text.splitlines()]
+            ]
+            logger.info('\n'.join(docs))
+
+    def _run(self, cmds, *, quiet=False):
+        self._handle_result(subprocess.run(cmds, stdout=PIPE, stderr=PIPE), quiet=quiet)
+
+    def clean(self, *, quiet=False):
+        self._run(['python', 'setup.py', 'clean'], quiet=quiet)
+
+    def build(self, *, quiet=False):
+        self._run(['python', 'setup.py', 'build'], quiet=quiet)
 
     def install(self):
-        ''' install from project. '''
-        subprocess.call(['python', 'setup.py', 'install'], stdout=DEVNULL)
+        '''install from project.'''
+        self._run(['python', 'setup.py', 'install'])
 
     def install_update(self):
-        ''' install from project. before install, uninstall exists version. '''
-        subprocess.call(['pip', 'uninstall', self._name], stdout=DEVNULL)
+        '''install from project. before install, uninstall exists.'''
+        self.uninstall()
         self.install()
 
     def install_from_pypi(self):
-        subprocess.call(['pip', 'install', self._name, '--upgrade'], stdout=DEVNULL)
+        '''install/upgrade from pypi.'''
+        self._run(['pip', 'install', self._name, '--upgrade'])
 
     def uninstall(self):
-        subprocess.call(['pip', 'uninstall', self._name], stdout=DEVNULL)
+        self._run(['pip', 'uninstall', self._name])
 
     def upload(self):
-        ''' upload to pypi. '''
-        subprocess.call(
-            ['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'],
-            stdout=DEVNULL
-        )
+        '''upload to pypi.'''
+        self._run(['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'])
 
     def upload_use_proxy(self):
-        subprocess.call(['pypitscript_upload_proxy.bat'], stdout=DEVNULL)
+        # cache env
+        k_http = 'HTTP_PROXY'
+        k_https = 'HTTPS_PROXY'
+        ks = (k_http, k_https)
+        cache = {}
+        for k in ks:
+            cache[k] = os.environ.get(k)
+
+        # set env
+        os.environ[k_http] = 'http://127.0.0.1:1082'
+        os.environ[k_https] = 'https://127.0.0.1:1082'
+        self.upload()
+
+        # rollback env
+        for k in ks:
+            if cache[k] is None:
+                os.environ.pop(k)
+            else:
+                os.environ[k] = cache[k]
 
     def generate_scripts(self):
         TEMPLATES.generate_scripts(self._metadata)
-
-
-class InitSetupCli(SetupCli):
-    def update_version(self):
-        self._metadata.update_version()

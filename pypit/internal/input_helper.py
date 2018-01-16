@@ -174,3 +174,17 @@ def input_entry_points(defval: dict, **kwargs):
         pass
 
     return defval
+
+@register('version')
+def input_version(defval: dict, **kwargs):
+
+    msg = yellow('[?]')
+    msg += ' please input the package version'
+    msg += f' (cannot be empty and {lightgreen(defval)}): '
+
+    while True:
+        print(msg, end='')
+        value = input()
+        value = value.strip()
+        if value not in ('', defval):
+            return value

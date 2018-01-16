@@ -13,11 +13,19 @@ from fsoopify import FileInfo, SerializeError, Path
 from input_picker import pick_bool, pick_item
 
 from .error import QuickExit
-from .utils import logger, yellow
+from .utils import logger, yellow, lightgreen
 from .input_helper import INPUT_METHOD_TABLE
 from .template import TEMPLATES
 
 class PackageMetadata:
+    types_map = {
+        'version': None,
+        'zip_safe': bool,
+        'include_package_data': bool,
+        'license': None,
+        'entry_points': None,
+        'scripts': None,
+    }
 
     def __init__(self):
         # metadata
@@ -64,19 +72,12 @@ class PackageMetadata:
         print(yellow('[?]'), 'do you want to update any optional arguments ?')
         if not pick_bool(defval=False):
             return
-        types_map = {
-            'zip_safe': bool,
-            'include_package_data': bool,
-            'license': None,
-            'entry_points': None,
-            'scripts': None,
-        }
-        source = list(types_map.keys())
+        source = list(self.types_map.keys())
         idx = pick_item(source)
         if idx == -1:
             return
         name = source[idx]
-        func = INPUT_METHOD_TABLE.get(name) or INPUT_METHOD_TABLE.get(types_map[name])
+        func = INPUT_METHOD_TABLE.get(name) or INPUT_METHOD_TABLE.get(self.types_map[name])
         assert func is not None, ''
         oldval = getattr(self, name)
         newval = func(
@@ -86,11 +87,8 @@ class PackageMetadata:
         )
         if newval is not None:
             setattr(self, name, newval)
-            logger.info(f'{name} already set to <{newval}>.')
+            logger.info(f'{name} already set to {lightgreen(newval)}.')
         return self.update_optional()
-
-    def update_version(self):
-        self.version = self.input_str('version', strip=True, can_empty=False, not_str=self.version)
 
     @classmethod
     def input_str(cls, name, strip=True, can_empty=False, not_str=None):
