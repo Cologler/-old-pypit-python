@@ -7,6 +7,7 @@
 # ----------
 
 import os
+import io
 import subprocess
 from subprocess import PIPE
 
@@ -19,27 +20,26 @@ class SetupCli:
         self._metadata = metadata
         self._name = metadata.name
 
-    def _handle_result(self, spr, *, quiet=False):
-        prefix = '>>>'.rjust(13).ljust(14)
-
-        if spr.stderr:
-            text = spr.stderr.decode('utf-8')
-            docs = [
-                'output: ',
-                *[prefix + red(line) for line in text.splitlines()]
-            ]
-            logger.error('\n'.join(docs))
-
-        elif not quiet and spr.stdout:
-            text = spr.stdout.decode('utf-8')
-            docs = [
-                'output: ',
-                *[prefix + green(line) for line in text.splitlines()]
-            ]
-            logger.info('\n'.join(docs))
-
     def _run(self, cmds, *, quiet=False):
-        self._handle_result(subprocess.run(cmds, stdout=PIPE, stderr=PIPE), quiet=quiet)
+        prefix = '>>>'.rjust(13).ljust(14)
+        h_output = False
+        h_error = False
+
+        with subprocess.Popen(cmds, stdout=PIPE, stderr=PIPE) as process:
+            if not quiet:
+                for line in io.TextIOWrapper(process.stdout, encoding='utf-8'):
+                    if line and not line.isspace():
+                        if not h_output:
+                            logger.info('output: ')
+                            h_output = True
+                        print(prefix + green(line.strip()))
+
+            for line in io.TextIOWrapper(process.stderr, encoding='utf-8'):
+                if line and not line.isspace():
+                    if not h_error:
+                        logger.error('output: ')
+                        h_error = True
+                    print(prefix + red(line.strip()))
 
     def clean(self, *, quiet=False):
         self._run(['python', 'setup.py', 'clean'], quiet=quiet)
