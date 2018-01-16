@@ -33,7 +33,7 @@ def build_proj(setup_cli):
     with open(os.path.join(name + '.egg-info', 'SOURCES.txt')) as fp:
         print('[INFO] manifest files:')
         for line in fp.read().splitlines():
-            print('  ' + line)
+            print(' ' * 8 + line)
 
 def pypit(projdir: str):
     projdir = os.path.abspath(projdir)
