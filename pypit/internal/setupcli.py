@@ -28,18 +28,20 @@ class SetupCli:
         with subprocess.Popen(cmds, stdout=PIPE, stderr=PIPE) as process:
             if not quiet:
                 for line in io.TextIOWrapper(process.stdout, encoding='utf-8'):
-                    if line and not line.isspace():
+                    line = line.strip()
+                    if line:
                         if not h_output:
                             logger.info('output: ')
                             h_output = True
-                        print(prefix + green(line.strip()))
+                        print(prefix + green(line))
 
             for line in io.TextIOWrapper(process.stderr, encoding='utf-8'):
-                if line and not line.isspace():
+                line = line.strip()
+                if line:
                     if not h_error:
                         logger.error('output: ')
                         h_error = True
-                    print(prefix + red(line.strip()))
+                    print(prefix + red(line))
 
     def clean(self, *, quiet=False):
         self._run(['python', 'setup.py', 'clean'], quiet=quiet)
