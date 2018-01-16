@@ -18,8 +18,8 @@ if os.path.isfile('__pypit_desc__.rst'):
 long_description = long_description or ''
 
 setup(
-    long_description = long_description,
-    packages = find_packages(),
+    long_description=long_description,
+    packages=find_packages(),
     # auto generated:
 {setup_argument}
 )

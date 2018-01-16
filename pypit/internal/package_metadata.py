@@ -86,7 +86,7 @@ class PackageMetadata:
         )
         if newval is not None:
             setattr(self, name, newval)
-            logger.info('{} already set to <{}>.'.format(name, newval))
+            logger.info(f'{name} already set to <{newval}>.')
         return self.update_optional()
 
     def update_version(self):
@@ -100,7 +100,7 @@ class PackageMetadata:
         if not_str:
             diff.append(not_str)
         opt = ' (cannot be {})'.format(' or '.join([x or 'empty' for x in diff])) if diff else ''
-        msg = yellow('[?] please input the package {}{}: '.format(name, opt))
+        msg = yellow('[?]') + f' please input the package {name}{opt}: '
         value = ''
         while True:
             print(msg, end='')
@@ -111,10 +111,11 @@ class PackageMetadata:
 
     @classmethod
     def optional_strip(cls, name, defval):
-        print(yellow('[?] please input the package {} (keep it empty to use `{}`): '.format(name, defval)), end='')
-        value = input()
-        if value.strip():
-            return value.strip()
+        msg = yellow('[?]') + f' please input the package {name} (keep it empty to use `{defval}`): '
+        print(msg, end='')
+        value = input().strip()
+        if value:
+            return value
         return defval
 
     @classmethod
@@ -126,9 +127,9 @@ class PackageMetadata:
 
         metadata = PackageMetadata()
 
-        fileinfo.load('json')
+        fileinfo.load()
         try:
-            content = fileinfo.load('json')
+            content = fileinfo.load()
         except SerializeError:
             raise QuickExit('[ERROR] <{}> is not a valid json file. try delete it for continue.'.format(path))
 
@@ -157,7 +158,7 @@ class PackageMetadata:
     def save(self, path):
         ''' save template to file so we can get it next time. '''
         fileinfo = FileInfo(path)
-        fileinfo.dump('json', self.__dict__, kwargs={
+        fileinfo.dump(self.__dict__, kwargs={
             'indent':2
         })
 
@@ -168,5 +169,5 @@ class PackageMetadata:
         lines = []
         for k, v in self.__dict__.items():
             if not k.startswith('_'):
-                lines.append('    {} = {},'.format(k, repr(v)))
+                lines.append('    {}={},'.format(k, repr(v)))
         return '\n'.join(lines)

@@ -32,7 +32,7 @@ def get_rst_doc():
 
     def resolve_history(name, converter):
         if os.path.isfile(name):
-            logger.info('[INFO] append history from {}.'.format(name))
+            logger.info(f'append history from {name}.')
             with open(name) as fp:
                 content = fp.read()
                 return content if converter is None else converter(content)
@@ -40,7 +40,7 @@ def get_rst_doc():
     history = resolve_history('HISTORY.rst', None) or resolve_history('HISTORY.md', md2rst)
 
     if history is None:
-        print('[INFO] no history found.')
+        logger.info('no history found.')
     else:
         rst_doc = rst_doc + '\n\n' + history,
 

@@ -30,7 +30,7 @@ def update_install_requires(self: PackageMetadata):
             logger.info(f'updated install_requires from file <{name}>.')
             return
 
-    logger.info('does not found any requires modules.')
+    logger.info('does not found any requires modules. try put them in `requirements.txt`.')
 
 @register
 def update_license(self: PackageMetadata):
