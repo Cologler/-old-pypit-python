@@ -28,7 +28,6 @@ class SetupCli:
         with subprocess.Popen(cmds, stdout=PIPE, stderr=PIPE) as process:
             if not quiet:
                 for line in io.TextIOWrapper(process.stdout, encoding='utf-8'):
-                    line = line.strip()
                     if line:
                         if not h_output:
                             logger.info('output: ')
@@ -36,7 +35,6 @@ class SetupCli:
                         print(prefix + green(line))
 
             for line in io.TextIOWrapper(process.stderr, encoding='utf-8'):
-                line = line.strip()
                 if line:
                     if not h_error:
                         logger.error('output: ')
