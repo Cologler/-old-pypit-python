@@ -32,14 +32,16 @@ class SetupCli:
                         if not h_output:
                             logger.info('output: ')
                             h_output = True
-                        print(prefix + green(line))
+                        print(prefix + green(line), end='')
 
             for line in io.TextIOWrapper(process.stderr, encoding='utf-8'):
                 if line:
+                    if line.endswith('\r'):
+                        line = line[:-1]
                     if not h_error:
                         logger.error('output: ')
                         h_error = True
-                    print(prefix + red(line))
+                    print(prefix + red(line), end='')
 
     def clean(self, *, quiet=False):
         self._run(['python', 'setup.py', 'clean'], quiet=quiet)
@@ -61,7 +63,7 @@ class SetupCli:
         self._run(['pip', 'install', self._name, '--upgrade'])
 
     def uninstall(self):
-        self._run(['pip', 'uninstall', self._name])
+        self._run(['pip', 'uninstall', self._name, '-y'])
 
     def upload(self):
         '''upload to pypi.'''

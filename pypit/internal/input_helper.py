@@ -108,7 +108,7 @@ def input_entry_points(defval: dict, **kwargs):
     main()
     ```
     '''
-    console_scripts = defval.setdefault('console_scripts', list)
+    console_scripts = defval.setdefault('console_scripts', [])
 
     filelist = []
     packages_names = find_packages()

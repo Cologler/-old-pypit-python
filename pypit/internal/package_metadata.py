@@ -87,7 +87,7 @@ class PackageMetadata:
         )
         if newval is not None:
             setattr(self, name, newval)
-            logger.info(f'{name} already set to {lightgreen(newval)}.')
+            logger.info(f'{name} already set to {lightgreen(str(newval))}.')
         return self.update_optional()
 
     @classmethod
