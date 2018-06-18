@@ -17,6 +17,12 @@ def declare_item(key: str, type: str):
 declare_root(
     'metadata',
     declare_item(
+        # value should be a path str (without `file:` prefix`).
+        # for example: `description-file = README.md`
+        key='desciption-file',
+        type='list-comma'
+    ),
+    declare_item(
         key='name',
         type='str',
     ),
