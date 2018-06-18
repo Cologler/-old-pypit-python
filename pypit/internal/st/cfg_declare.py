@@ -8,11 +8,39 @@
 # all docs was copy from
 # https://setuptools.readthedocs.io/en/latest/setuptools.html
 
-def declare_root(name, *items):
-    raise NotImplementedError
+from typing import Iterable
 
-def declare_item(key: str, type: str):
-    raise NotImplementedError
+class CFGDataItem:
+    def __init__(self, key, types: Iterable[str], group):
+        self._key = key
+        self._types = types
+        self._group = group
+
+    @property
+    def key(self):
+        return self._key
+
+    @property
+    def types(self):
+        return self._types
+
+_CFG_DATA_ITEMS = []
+_CFG_DATA_ITEMS_MAP = {}
+
+def get_metadata_declaration(key):
+    return _CFG_DATA_ITEMS_MAP[key]
+
+def declare_root(name, *items):
+    for item in items:
+        md = CFGDataItem(item['key'], item['type'], name)
+        _CFG_DATA_ITEMS.append(md)
+        _CFG_DATA_ITEMS_MAP[md.key] = md
+
+def declare_item(key: str, type: str, **kwargs):
+    types = (t.strip() for t in type.split(',')) # parse types
+    kwargs['key'] = key
+    kwargs['type'] = types
+    return kwargs
 
 declare_root(
     'metadata',
