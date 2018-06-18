@@ -6,7 +6,9 @@
 #
 # ----------
 
+import os
 import logging
+import contextlib
 
 import colorama
 
@@ -40,3 +42,11 @@ def green(text):
 def red(text):
     ''' wrap text as colored text. '''
     return colorama.Fore.RED + text + colorama.Fore.RESET
+
+@contextlib.contextmanager
+def chdir(dirname):
+    '''change work dir in context.'''
+    cur = os.getcwd()
+    os.chdir(dirname)
+    yield
+    os.chdir(cur)
