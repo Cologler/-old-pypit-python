@@ -49,15 +49,4 @@ class _Templates:
                 description=repr(metadata.description)
             ))
 
-    def generate_scripts(self, metadata):
-        prefix = 'pypitscript_'
-
-        for name in self._templates:
-            with open(prefix + name, 'w') as fp:
-                fp.write(self._templates[name].format(name=metadata.name))
-
-        for name in self._readonlys:
-            with open(prefix + name, 'w') as fp:
-                fp.write(self._readonlys[name])
-
 TEMPLATES = _Templates()

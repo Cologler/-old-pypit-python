@@ -91,6 +91,3 @@ class SetupCli:
                 os.environ.pop(k)
             else:
                 os.environ[k] = cache[k]
-
-    def generate_scripts(self):
-        TEMPLATES.generate_scripts(self._metadata)
