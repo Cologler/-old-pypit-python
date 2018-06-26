@@ -25,6 +25,8 @@ class SetupCli:
         h_output = False
         h_error = False
 
+        logger.info(f'eval commands: {repr(cmds)}')
+
         with subprocess.Popen(cmds, stdout=PIPE, stderr=PIPE) as process:
             if not quiet:
                 for line in io.TextIOWrapper(process.stdout, encoding='utf-8'):
