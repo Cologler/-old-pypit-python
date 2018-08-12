@@ -16,10 +16,6 @@ from .template import TEMPLATES
 from .utils import logger, green, red
 
 class SetupCli:
-    def __init__(self, metadata: PackageMetadata):
-        self._metadata = metadata
-        self._name = metadata.name
-
     def _run(self, cmds, *, quiet=False):
         prefix = '>>>'.rjust(13).ljust(14)
         h_output = False
@@ -55,23 +51,13 @@ class SetupCli:
         '''install from project.'''
         self._run(['python', 'setup.py', 'install'])
 
-    def install_update(self):
-        '''install from project. before install, uninstall exists.'''
-        self.uninstall()
-        self.install()
-
-    def install_from_pypi(self):
-        '''install/upgrade from pypi.'''
-        self._run(['pip', 'install', self._name, '--upgrade'])
-
-    def uninstall(self):
-        self._run(['pip', 'uninstall', self._name, '-y'])
-
-    def upload(self):
-        '''upload to pypi.'''
+    def publish(self):
+        '''
+        publish to pypi.
+        '''
         self._run(['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'])
 
-    def upload_use_proxy(self):
+    def publish_use_proxy(self):
         # cache env
         k_http = 'HTTP_PROXY'
         k_https = 'HTTPS_PROXY'
@@ -83,7 +69,7 @@ class SetupCli:
         # set env
         os.environ[k_http] = 'http://127.0.0.1:1082'
         os.environ[k_https] = 'https://127.0.0.1:1082'
-        self.upload()
+        self.publish()
 
         # rollback env
         for k in ks:
@@ -91,3 +77,21 @@ class SetupCli:
                 os.environ.pop(k)
             else:
                 os.environ[k] = cache[k]
+
+
+class NamedSetupCli(SetupCli):
+    def __init__(self, package_name: str):
+        super().__init__()
+        self._name = package_name
+
+    def install_update(self):
+        '''install from project. before install, uninstall exists.'''
+        self.uninstall()
+        self.install()
+
+    def install_from_pypi(self):
+        '''install/upgrade from pypi.'''
+        self._run(['pip', 'install', self._name, '--upgrade'])
+
+    def uninstall(self):
+        self._run(['pip', 'uninstall', self._name, '-y'])

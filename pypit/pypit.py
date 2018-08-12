@@ -18,14 +18,13 @@ from internal.utils import (
     chdir
 )
 from internal.package_metadata import PackageMetadata
-from internal.setupcli import SetupCli
+from internal.setupcli import NamedSetupCli, SetupCli
 from internal.doc import generate_rst_doc
 
 
 NORM_TABLE = {
     ord('-'): '_'
 }
-
 
 def build_proj(setup_cli):
     setup_cli.clean(quiet=True)
@@ -37,45 +36,73 @@ def build_proj(setup_cli):
             print(' ' * 8 + line)
 
 def pypit(projdir: str):
-    projdir = os.path.abspath(projdir)
-    if not os.path.isdir(projdir):
-        raise QuickExit('<{}> is not a dir.'.format(projdir))
+    path_metadata = '__pypit_metadata__.json'
 
-    with chdir(projdir):
-        path_metadata = '__pypit_metadata__.json'
+    metadata = PackageMetadata.parse(path_metadata) or PackageMetadata.create(path_metadata)
+    metadata.auto_update()
+    metadata.update_optional()
+    metadata.save(path_metadata)
+    metadata.generate_setup_py('setup.py')
 
-        metadata = PackageMetadata.parse(path_metadata) or PackageMetadata.create(path_metadata)
-        metadata.auto_update()
-        metadata.update_optional()
-        metadata.save(path_metadata)
-        metadata.generate_setup_py('setup.py')
+    generate_rst_doc()
 
-        generate_rst_doc()
+    setup_cli = NamedSetupCli(metadata.name)
+    build_proj(setup_cli)
 
-        setup_cli = SetupCli(metadata)
-        build_proj(setup_cli)
+    while True:
+        print(yellow('[?]'), 'want to execute any action ?')
+        method = pick_method(setup_cli)
+        if method is not None:
+            logger.info(f'begin {method.__name__} ...')
+            method()
+            logger.info(f'{method.__name__} finished ...')
+        else:
+            print('[DONE] all job finished.')
+            return
 
-        while True:
-            print(yellow('[?]'), 'want to execute any action ?')
-            method = pick_method(setup_cli)
-            if method is not None:
-                logger.info('begin {} ...'.format(method.__name__))
-                method()
-                logger.info('{} finished ...'.format(method.__name__))
-            else:
-                print('[DONE] all job finished.')
-                return
+def pypit_cli(cmd):
+    setup_cli = SetupCli()
+    if cmd in dir(setup_cli):
+        method = getattr(setup_cli, cmd)
+        logger.info(f'begin {method.__name__} ...')
+        method()
+        logger.info(f'{method.__name__} finished ...')
+    else:
+        print(f'unknown command <{cmd}>')
+        print(f'available commands:')
+        for cmd in dir(setup_cli):
+            if not cmd.startswith('_'):
+                print(f'    {cmd}')
 
+def ensure_isdir(path):
+    if not os.path.isdir(path):
+        logger.error(f'<{path}> is not a dir.')
+        return exit()
 
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     try:
+
+        path, cmd = None, None
         if len(argv) == 1:
-            return pypit('.')
-        if len(argv) == 2:
-            return pypit(argv[1])
-        logger.error('unknown arguments.')
+            path = '.'
+        elif len(argv) == 2:
+            if os.path.isdir(argv[1]):
+                path = argv[1]
+            else:
+                path = '.'
+                cmd = argv[1]
+        elif len(argv) == 3:
+            path, cmd = argv[1:]
+        elif len(argv) > 3:
+            logger.error('unknown arguments.')
+            return
+        path = os.path.abspath(path)
+        ensure_isdir(path)
+        with chdir(path):
+            return pypit(path) if cmd is None else pypit_cli(cmd)
+
     except Stop:
         logger.info('User stop application.')
     except QuickExit as qe:
