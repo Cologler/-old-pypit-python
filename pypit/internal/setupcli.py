@@ -95,3 +95,10 @@ class NamedSetupCli(SetupCli):
 
     def uninstall(self):
         self._run(['pip', 'uninstall', self._name, '-y'])
+
+    def browse(self):
+        '''
+        open browser for view the package on pypi.
+        '''
+        import webbrowser
+        webbrowser.open(f'https://pypi.org/project/{self._name}/')
