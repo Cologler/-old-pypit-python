@@ -23,6 +23,7 @@ from internal.utils import (
 from internal.package_metadata import PackageMetadata
 from internal.setupcli import NamedSetupCli, SetupCli
 from internal.doc import generate_rst_doc
+from internal.setuptools_injector import get_setup_attrs
 
 
 NORM_TABLE = {
@@ -110,8 +111,9 @@ def cli(ctx):
 
 @cli.command()
 def browse():
-    from internal.setuptools_injector import get_setup_attrs
-
+    '''
+    open browser and goto pypi website to find this package.
+    '''
     setup_file_info = DirectoryInfo('.').get_fileinfo('setup.py')
     if not setup_file_info.is_file():
         click.echo('no package found.')
