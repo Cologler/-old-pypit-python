@@ -9,6 +9,9 @@
 import os
 import sys
 import traceback
+
+import click
+from fsoopify import DirectoryInfo
 from input_picker import pick_method, Stop
 
 from internal.error import QuickExit
@@ -79,30 +82,51 @@ def ensure_isdir(path):
         logger.error(f'<{path}> is not a dir.')
         return exit()
 
+@click.group(invoke_without_command=True)
+@click.pass_context
+def cli(ctx):
+    if ctx.invoked_subcommand is not None:
+        return
+    argv = sys.argv
+    path, cmd = None, None
+    if len(argv) == 1:
+        path = '.'
+    elif len(argv) == 2:
+        if os.path.isdir(argv[1]):
+            path = argv[1]
+        else:
+            path = '.'
+            cmd = argv[1]
+    elif len(argv) == 3:
+        # pylint: disable=E0632
+        path, cmd = argv[1:]
+    elif len(argv) > 3:
+        logger.error('unknown arguments.')
+        return
+    path = os.path.abspath(path)
+    ensure_isdir(path)
+    with chdir(path):
+        return pypit(path) if cmd is None else pypit_cli(cmd)
+
+@cli.command()
+def browse():
+    from internal.setuptools_injector import get_setup_attrs
+
+    setup_file_info = DirectoryInfo('.').get_fileinfo('setup.py')
+    if not setup_file_info.is_file():
+        click.echo('no package found.')
+        return
+    attrs = get_setup_attrs(setup_file_info.path)
+    package_name = attrs['name']
+    setup_cli = NamedSetupCli(package_name)
+    setup_cli.browse()
+
 def main(argv=None):
     if argv is None:
         argv = sys.argv
     try:
-
-        path, cmd = None, None
-        if len(argv) == 1:
-            path = '.'
-        elif len(argv) == 2:
-            if os.path.isdir(argv[1]):
-                path = argv[1]
-            else:
-                path = '.'
-                cmd = argv[1]
-        elif len(argv) == 3:
-            path, cmd = argv[1:]
-        elif len(argv) > 3:
-            logger.error('unknown arguments.')
-            return
-        path = os.path.abspath(path)
-        ensure_isdir(path)
-        with chdir(path):
-            return pypit(path) if cmd is None else pypit_cli(cmd)
-
+        # pylint: disable=E1120
+        cli()
     except Stop:
         logger.info('User stop application.')
     except QuickExit as qe:

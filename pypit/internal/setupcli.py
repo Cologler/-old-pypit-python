@@ -14,6 +14,7 @@ from subprocess import PIPE
 from .package_metadata import PackageMetadata
 from .template import TEMPLATES
 from .utils import logger, green, red
+from .utils_pypi import get_package_url
 
 class SetupCli:
     def _run(self, cmds, *, quiet=False):
@@ -101,4 +102,4 @@ class NamedSetupCli(SetupCli):
         open browser for view the package on pypi.
         '''
         import webbrowser
-        webbrowser.open(f'https://pypi.org/project/{self._name}/')
+        webbrowser.open(get_package_url(self._name))
