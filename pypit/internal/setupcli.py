@@ -56,7 +56,8 @@ class SetupCli:
         '''
         publish to pypi.
         '''
-        self._run(['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'])
+        #self._run(['python', 'setup.py', 'register', 'sdist', 'bdist_egg', 'upload'])
+        self._run(['python', 'setup.py', 'sdist', 'bdist_wheel', 'upload'])
 
     def publish_use_proxy(self):
         # cache env
