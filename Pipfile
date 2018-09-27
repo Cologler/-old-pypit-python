@@ -1,0 +1,16 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+"m2r" = "*"
+fsoopify = "*"
+input_picker = "*"
+click = "*"
+wheel = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"
